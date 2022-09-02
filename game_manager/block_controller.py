@@ -108,6 +108,8 @@ class Block_Controller(object):
         
         if (bottom - min_height) < 3:
             return False
+        else:
+            return True
     
     def i_mino(self, board, x, y, direction):
         hole_blocks = 0
