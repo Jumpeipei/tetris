@@ -681,7 +681,7 @@ class Block_Controller(object):
             x_4 = x
             y_4 = y + 1
             below_4 = 1
-            while (y_4 + below_4) <= (self.board_data_height - 1) and board[(y_4 - 1) * self.board_data_width + x_4] == self.ShapeNone_index:
+            while (y_4 + below_4) <= (self.board_data_height - 1) and board[(y_4 - below_4) * self.board_data_width + x_4] == self.ShapeNone_index:
                 hole_blocks += 1
                 below_4 += 1
 
