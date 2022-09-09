@@ -39,7 +39,6 @@ class Block_Controller(object):
         # next shape info
         NextShapeDirectionRange = GameStatus["block_info"]["nextShape"]["direction_range"]
         self.NextShape_class = GameStatus["block_info"]["nextShape"]["class"]
-        self.NextShape_index = GameStatus["block_info"]["nextShape"]["index"]
         # current board info
         self.board_backboard = GameStatus["field_info"]["backboard"]
         # default board definition
@@ -47,81 +46,42 @@ class Block_Controller(object):
         self.board_data_height = GameStatus["field_info"]["height"]
         self.ShapeNone_index = GameStatus["debug_info"]["shape_info"]["shapeNone"]["index"]
 
-        strategy_ = None
-        LatestEvalValue_ = -100000
         # search best nextMove -->
-        # search with next block shape for best estimation
-        for direction0_ in NextShapeDirectionRange:
-            # search with x range
-            x0Min_, x0Max_ = self.getSearchXRange(
-                self.NextShape_class, direction0_)
-            for x0_ in range(x0Min_, x0Max_):
-                # calculate possible delete lines with previous board data
-                # --- next block shape ---
-                block_height_list = self.get_block_height_list(
-                    self.board_backboard)
-                bottom_list = self.get_bottom_list(
-                    self.board_backboard)
-                possible_delete_lines = self.get_possible_delete_lines(
-                    block_height_list, bottom_list)
-
-                # get board data, as if dropdown block
-                board_, dy_ = self.getBoard(
-                    self.board_backboard, self.NextShape_class, direction0_, x0_)
-
-                # evaluate board
-                # x0_,dy_ = center point of mino
-                EvalValue_ = self.calcEvaluationValueSample(
-                    board_, direction0_, x0_, dy_, possible_delete_lines)
-                # update best move
-                if EvalValue_ > LatestEvalValue_:
-                    strategy_ = (direction0_, x0_, 1, 1)
-                    LatestEvalValue_ = EvalValue_
-
-        # ---------------------------------------------------
         strategy = None
         LatestEvalValue = -100000
+        iter = 0
         # search with current block Shape
         for direction0 in CurrentShapeDirectionRange:
             # search with x range
             x0Min, x0Max = self.getSearchXRange(
                 self.CurrentShape_class, direction0)
             for x0 in range(x0Min, x0Max):
-                # calculate possible delete lines with previous board data
-                # --- current block shape ---
-                block_height_list = self.get_block_height_list(
-                    self.board_backboard)
-                bottom_list = self.get_bottom_list(
-                    self.board_backboard)
-                possible_delete_lines = self.get_possible_delete_lines(
-                    block_height_list, bottom_list)
-
                 # get board data, as if dropdown block
                 board, dy = self.getBoard(
                     self.board_backboard, self.CurrentShape_class, direction0, x0)
+                #print(self.getShapeCoordArray(self.CurrentShape_class, direction0, x0, 0))
 
                 # evaluate board
-                # x0,dy = center point of mino
                 EvalValue = self.calcEvaluationValueSample(
-                    board, direction0, x0, dy, possible_delete_lines)
+                    board, direction0, x0, dy)
                 # update best move
                 if EvalValue > LatestEvalValue:
-                    if EvalValue > LatestEvalValue_:
-                        strategy = (direction0, x0, 1, 1)
-                        LatestEvalValue = EvalValue
+                    strategy = (direction0, x0, 1, 1)
+                    LatestEvalValue = EvalValue
 
                 # test
                 # for direction1 in NextShapeDirectionRange:
-                # x1Min, x1Max = self.getSearchXRange(self.NextShape_class, direction1)
+                ###  x1Min, x1Max = self.getSearchXRange(self.NextShape_class, direction1)
                 # for x1 in range(x1Min, x1Max):
-                # board2 = self.getBoard(board, self.NextShape_class, direction1, x1)
-                # EvalValue = self.calcEvaluationValueSample(board2)
+                ###        board2 = self.getBoard(board, self.NextShape_class, direction1, x1)
+                ###        EvalValue = self.calcEvaluationValueSample(board2)
                 # if EvalValue > LatestEvalValue:
-                # strategy = (direction0, x0, 1, 1)
-                # LatestEvalValue = EvalValue
+                ###            strategy = (direction0, x0, 1, 1)
+                ###            LatestEvalValue = EvalValue
+                iter += 1
         # search best nextMove <--
 
-        print("=== processed times is =========", datetime.now() - t1)
+        print("===", datetime.now() - t1)
         nextMove["strategy"]["direction"] = strategy[0]
         nextMove["strategy"]["x"] = strategy[1]
         nextMove["strategy"]["y_operation"] = strategy[2]
@@ -138,63 +98,24 @@ class Block_Controller(object):
         xMin = -1 * minX
         xMax = self.board_data_width - maxX
         current_mino_index = self.CurrentShape_index
+        i_mino_index = 1
         if current_mino_index == 1 or current_mino_index == 2 or current_mino_index == 5:
-            # if current_mino_index == 1 or current_mino_index == 5:
+            # if current_mino_index == 1 or current_mino_index == 2:
             return xMin, xMax
         else:
             return xMin, xMax - 1
 
-    def get_block_height_list(self, board):
-        width = self.board_data_width
-        height = self.board_data_height
-        hole_height_list = [0] * width
-        for x in range(width):
-            for y in range(height - 1, 0, -1):
-                if board[y * self.board_data_width + x] == self.ShapeNone_index:
-                    hole_height_list[x] = y
-                    break
-                else:
-                    pass
-        return hole_height_list
+    def empty_enough_line(self, board, min_height):
+        bottom = self.board_data_height - 1
+        for y in range(self.board_data_height - 1, 0, -1):
+            if board[y * self.board_data_width + (self.board_data_width - 1)] != self.ShapeNone_index:
+                bottom = y
 
-    def get_bottom_list(self, board):
-        width = self.board_data_width
-        bottom_list = [21] * width
-        for x in range(width):
-            for y in range(self.board_data_height - 1, 0, -1):
-                if board[y * width + x] != self.ShapeNone_index:
-                    bottom_list[x] = y - 1
-        return bottom_list
-
-    def get_possible_delete_lines(self, block_height_list, bottom_list):
-        width = self.board_data_width
-        possible_delete_lines = [0] * width
-        max_block_height = 0
-        iter = 0
-        for i in range(len(block_height_list)):
-            if block_height_list[i] >= 21:
-                iter += 1
-        if iter == 1:
-            max_block_height = max(s for s in block_height_list if s != 21)
+        print([bottom, min_height])
+        if (bottom - min_height) < 3:
+            return False
         else:
-            max_block_height = max(block_height_list)
-
-        for x in range(width):
-            possible_delete_lines[x] = bottom_list[x] - max_block_height
-            if possible_delete_lines[x] < 0:
-                possible_delete_lines[x] = 0
-        return possible_delete_lines
-
-    def get_best_move(current_score, best_score, next_score, direction, x):
-        # best_latest_strategy = best_strategy
-        best_latest_score = best_score
-        if current_score > best_latest_score:
-            if current_score > next_score:
-                best_latest_strategy = (direction, x, 1, 1)
-                best_latest_score = current_score
-            else:
-                pass
-        return best_latest_strategy, best_latest_score
+            return True
 
     def i_mino(self, board, x, y, direction):
         hole_blocks = 0
@@ -819,36 +740,34 @@ class Block_Controller(object):
             _board[(_y + dy) * self.board_data_width + _x] = Shape_class.shape
         return _board
 
-    def calcEvaluationValueSample(self, board, direction, x_center, y_center, possible_delete_lines):
+    def calcEvaluationValueSample(self, board, direction, x_center, y_center):
         #
         # sample function of evaluate board.
         #
         width = self.board_data_width
         height = self.board_data_height
 
-        # ---evaluation function-------------------------------------
-
         # evaluation paramters
         # lines to be removed
         fullLines = 0
         # number of holes or blocks in the line.
         nHoles, nIsolatedBlocks = 0, 0
-        # absolute differential value of MaxY
+        # absolute differencial value of MaxY
         absDy = 0
-        # how blocks are accumulated
+        # how blocks are accumlated
         BlockMaxY = [0] * width
         BlockMaxY_no_empty = [21] * width
         holeCandidates = [0] * width
         holeConfirm = [0] * width
+        adjacent_blocks = 0
         hole_blocks = 0
         penalty = 0
-
         # check board
-        # each y line
+        # each y linee
         for y in range(height - 1, 0, -1):
             hasHole = False
             hasBlock = False
-
+            has_hole_line = False
             # each x line
             for x in range(width):
                 # check if hole or block..
@@ -860,6 +779,15 @@ class Block_Controller(object):
                     # block
                     hasBlock = True
                     BlockMaxY[x] = height - y                # update blockMaxY
+                    if self.CurrentShape_index == 1:
+                        if direction == 0:
+                            if (height - y) != 0 and hasHole is False:
+                                if has_hole_line is False:
+                                    BlockMaxY_no_empty[x] = y
+                                else:
+                                    pass
+                            if hasHole is True:
+                                has_hole_line = True
                     if holeCandidates[x] > 0:
                         # update number of holes in target column..
                         holeConfirm[x] += holeCandidates[x]
@@ -880,12 +808,11 @@ class Block_Controller(object):
 
         if self.CurrentShape_index == 1:
             hole_blocks += self.i_mino(board, x_center, y_center, direction)
-            if possible_delete_lines[x_center] <= 0:
-                pass
-            elif possible_delete_lines[x_center] >= 5:
-                pass
-            else:
-                penalty += (4 - possible_delete_lines[x_center])
+            if direction == 0:
+                enough_lines = self.empty_enough_line(
+                    board, min(BlockMaxY_no_empty))
+                if not enough_lines == True:
+                    penalty += 1.5
         if self.CurrentShape_index == 2:
             hole_blocks += self.l_mino(board, x_center, y_center, direction)
         if self.CurrentShape_index == 3:
@@ -912,9 +839,9 @@ class Block_Controller(object):
             absDy += abs(x)
 
         # maxDy
-        # maxDy = max(BlockMaxY) - min(BlockMaxY)
+        #maxDy = max(BlockMaxY) - min(BlockMaxY)
         # maxHeight
-        # maxHeight = max(BlockMaxY) - fullLines
+        #maxHeight = max(BlockMaxY) - fullLines
 
         # statistical data
         # stdY
@@ -940,10 +867,9 @@ class Block_Controller(object):
             score = score + fullLines * 0.5         # try to delete line
         score = score - nHoles * 5.0               # try not to make hole
         score = score - nIsolatedBlocks * 2.0      # try not to make isolated block
-        score = score - absDy * 1.0                # try to put block smoothly 1.0
+        score = score - absDy * 1.0                # try to put block smoothly
         score = score - hole_blocks * 5.0
-        score = score - penalty * 2.0
-        # print([penalty, score])
+        score = score - penalty
         # score = score - maxDy * 0.3                # maxDy
         # score = score - maxHeight * 5              # maxHeight
         # score = score - stdY * 1.0                 # statistical data
