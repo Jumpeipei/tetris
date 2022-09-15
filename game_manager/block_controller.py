@@ -47,40 +47,45 @@ class Block_Controller(object):
         self.board_data_height = GameStatus["field_info"]["height"]
         self.ShapeNone_index = GameStatus["debug_info"]["shape_info"]["shapeNone"]["index"]
 
-        strategy_ = None
-        LatestEvalValue_ = -100000
-        # search best nextMove -->
-        # search with next block shape for best estimation
-        for direction0_ in NextShapeDirectionRange:
-            # search with x range
-            x0Min_, x0Max_ = self.getSearchXRange(
-                self.NextShape_class, direction0_)
-            for x0_ in range(x0Min_, x0Max_):
-                # calculate possible delete lines with previous board data
-                # --- next block shape ---
-                block_height_list = self.get_block_height_list(
-                    self.board_backboard)
-                bottom_list = self.get_bottom_list(
-                    self.board_backboard)
-                possible_delete_lines = self.get_possible_delete_lines(
-                    block_height_list, bottom_list)
+        # strategy_ = None
+        # LatestEvalValue_ = -100000
+        # # search best nextMove -->
+        # # search with next block shape for best estimation
+        # for direction0_ in NextShapeDirectionRange:
+        #     # search with x range
+        #     x0Min_, x0Max_ = self.getSearchXRange(
+        #         self.NextShape_class, direction0_)
+        #     for x0_ in range(x0Min_, x0Max_):
+        #         # calculate possible delete lines with previous board data
+        #         # --- next block shape ---
+        #         block_height_list = self.get_block_height_list(
+        #             self.board_backboard)
+        #         bottom_list = self.get_bottom_list(
+        #             self.board_backboard)
+        #         possible_delete_lines = self.get_possible_delete_lines(
+        #             block_height_list, bottom_list)
 
-                # get board data, as if dropdown block
-                board_, dy_ = self.getBoard(
-                    self.board_backboard, self.NextShape_class, direction0_, x0_)
+        #         # get board data, as if dropdown block
+        #         board_, dy_ = self.getBoard(
+        #             self.board_backboard, self.NextShape_class, direction0_, x0_)
 
-                # evaluate board
-                # x0_,dy_ = center point of mino
-                EvalValue_ = self.calcEvaluationValueSample(
-                    board_, direction0_, x0_, dy_, possible_delete_lines)
-                # update best move
-                if EvalValue_ > LatestEvalValue_:
-                    strategy_ = (direction0_, x0_, 1, 1)
-                    LatestEvalValue_ = EvalValue_
+        #         # evaluate board
+        #         # x0_,dy_ = center point of mino
+        #         EvalValue_ = self.calcEvaluationValueSample(
+        #             board_, direction0_, x0_, dy_, possible_delete_lines)
+        #         # update best move
+        #         if EvalValue_ > LatestEvalValue_:
+        #             strategy_ = (direction0_, x0_, 1, 1)
+        #             LatestEvalValue_ = EvalValue_
 
         # ---------------------------------------------------
         strategy = None
         LatestEvalValue = -100000
+        best_value = -100000
+        flag = False
+        latest_test = -100000
+        strategy_test = None
+
         # search with current block Shape
         for direction0 in CurrentShapeDirectionRange:
             # search with x range
@@ -104,11 +109,21 @@ class Block_Controller(object):
                 # x0,dy = center point of mino
                 EvalValue = self.calcEvaluationValueSample(
                     board, direction0, x0, dy, possible_delete_lines)
-                # update best move
+
                 if EvalValue > LatestEvalValue:
-                    if EvalValue > LatestEvalValue_:
-                        strategy = (direction0, x0, 1, 1)
-                        LatestEvalValue = EvalValue
+                    strategy = (direction0, x0, 1, 1)
+                    LatestEvalValue = EvalValue
+
+                # # update best move
+                # if EvalValue > LatestEvalValue:
+                #     if EvalValue > LatestEvalValue_:
+                #         flag = True
+                #         strategy = (direction0, x0, 1, 1)
+                #         LatestEvalValue = EvalValue
+
+                # if flag == False:
+                #     strategy = strategy_test
+                #     LatestEvalValue = latest_test
 
                 # test
                 # for direction1 in NextShapeDirectionRange:
@@ -938,11 +953,12 @@ class Block_Controller(object):
             score = score + fullLines * 0.5
         else:
             score = score + fullLines * 0.5         # try to delete line
-        score = score - nHoles * 5.0               # try not to make hole
-        score = score - nIsolatedBlocks * 2.0      # try not to make isolated block
+        score = score - nHoles * 5.0               # try not to make hole 5.0
+        score = score - nIsolatedBlocks * 2.0      # try not to make isolated block 2.0
         score = score - absDy * 1.0                # try to put block smoothly 1.0
-        score = score - hole_blocks * 5.0
-        score = score - penalty * 2.0
+        score = score - hole_blocks * 5.0  # 5.0
+        score = score - penalty * 1.0  # 1.0
+        score = score + y_center * 0.5  # 0.5
         # print([penalty, score])
         # score = score - maxDy * 0.3                # maxDy
         # score = score - maxHeight * 5              # maxHeight
