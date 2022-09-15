@@ -965,7 +965,7 @@ class Block_Controller(object):
         # score = score - stdY * 1.0                 # statistical data
         # score = score - stdDY * 0.01               # statistical data
         # print(score, fullLines, nHoles, nIsolatedBlocks, maxHeight, stdY, stdDY, absDy, BlockMaxY)
-        return score
+        return score  # score
 
 
 BLOCK_CONTROLLER = Block_Controller()
